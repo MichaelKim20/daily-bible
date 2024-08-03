@@ -10,34 +10,45 @@ async function getSummary(url: string) {
     if (res.status === 200) {
         try {
             const text: string = res.data;
-            let p1: number;
-            let p2: number;
-            let s1: string;
-            let s2: string;
-
-            p1 = text.indexOf("본문의 중심내용");
+            const p1 = text.indexOf("본문의 중심내용");
             if (p1 >= 0) {
-                s1 = text.substring(p1 + 8);
-                p2 = s1.indexOf("</p><br />");
+                const s1 = text.substring(p1 + 8);
+                const p2 = s1.indexOf("</p><br />");
                 if (p2 >= 0) {
-                    s2 = s1.substring(0, p2);
+                    const summary = s1
+                        .substring(0, p2)
+                        .replace(/<\/span>/g, "")
+                        .replace(/<br \/>/g, "")
+                        .trim();
 
-                    s2 = s2.replace(/<\/span>/g, "");
-                    s2 = s2.replace(/<br \/>/g, "");
-                    s2 = s2.trim();
-                    return s2;
+                    const s3 = s1.substring(p2 + 10);
+                    const p3 = s3.indexOf("<br /><br />");
+                    let bible: string;
+                    if (p3 >= 0) {
+                        bible = s3
+                            .substring(0, p3)
+                            .replace(/<strong>/g, "")
+                            .replace(/<\/strong>/g, "")
+                            .replace(/<br \/>/g, "")
+                            .replace(/\[ /g, "[")
+                            .replace(/ \]/g, "]")
+                            .trim();
+                    } else {
+                        bible = "";
+                    }
+                    return { summary, bible };
                 } else {
-                    return "";
+                    return { summary: "", bible: "" };
                 }
             } else {
-                return "";
+                return { summary: "", bible: "" };
             }
         } catch (error) {
             //
         }
-        return "";
+        return { summary: "", bible: "" };
     } else {
-        return "";
+        return { summary: "", bible: "" };
     }
 }
 

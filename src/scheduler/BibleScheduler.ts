@@ -45,58 +45,70 @@ export class BibleScheduler extends Scheduler {
         if (res.status === 200) {
             try {
                 const text: string = res.data;
-                let p1: number;
-                let p2: number;
-                let s1: string;
-                let s2: string;
-
-                p1 = text.indexOf("본문의 중심내용");
+                const p1 = text.indexOf("본문의 중심내용");
                 if (p1 >= 0) {
-                    s1 = text.substring(p1 + 8);
-                    p2 = s1.indexOf("</p><br />");
+                    const s1 = text.substring(p1 + 8);
+                    const p2 = s1.indexOf("</p><br />");
                     if (p2 >= 0) {
-                        s2 = s1.substring(0, p2);
+                        const summary = s1
+                            .substring(0, p2)
+                            .replace(/<\/span>/g, "")
+                            .replace(/<br \/>/g, "")
+                            .trim();
 
-                        s2 = s2.replace(/<\/span>/g, "");
-                        s2 = s2.replace(/<br \/>/g, "");
-                        s2 = s2.trim();
-                        return s2;
+                        const s3 = s1.substring(p2 + 10);
+                        const p3 = s3.indexOf("<br /><br />");
+                        let bible: string;
+                        if (p3 >= 0) {
+                            bible = s3
+                                .substring(0, p3)
+                                .replace(/<strong>/g, "")
+                                .replace(/<\/strong>/g, "")
+                                .replace(/<br \/>/g, "")
+                                .replace(/\[ /g, "[")
+                                .replace(/ \]/g, "]")
+                                .trim();
+                        } else {
+                            bible = "";
+                        }
+                        return { summary, bible };
                     } else {
-                        return "";
+                        return { summary: "", bible: "" };
                     }
                 } else {
-                    return "";
+                    return { summary: "", bible: "" };
                 }
             } catch (error) {
                 //
             }
-            return "";
+            return { summary: "", bible: "" };
         } else {
-            return "";
+            return { summary: "", bible: "" };
         }
     }
 
     protected async buildContents() {
-        const today = moment();
-        const to2 = today.tz("Asia/Seoul");
-        const url = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${to2
+        const today = moment().tz("Asia/Seoul");
+        const url = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${today
             .tz("Asia/Seoul")
             .format("YYYY-MM-DD")}`;
-        const summary = await this.getSummary(url);
-        const subject = `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티`;
+        const header = await this.getSummary(url);
+        const subject = `${today.tz("Asia/Seoul").format("M")}월 ${today.tz("Asia/Seoul").format("D")}일 매일성경 큐티`;
         let text = "";
         let html = "";
-        const textLink = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${to2
+        const textLink = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${today
             .tz("Asia/Seoul")
             .format("YYYY-MM-DD")}`;
-        const audioLink = `https://meditation.su.or.kr/meditation_mp3/${to2.tz("Asia/Seoul").format("YYYY")}/${to2
+        const audioLink = `https://meditation.su.or.kr/meditation_mp3/${today.tz("Asia/Seoul").format("YYYY")}/${today
             .tz("Asia/Seoul")
             .format("YYYYMMDD")}.mp3`;
-        if (summary !== "") {
+        if (header.summary !== "") {
             text =
-                `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
+                `${today.tz("Asia/Seoul").format("M")}월 ${today.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
+                `${header.bible}\n` +
+                `\n` +
                 `[본문의 중심내용]\n` +
-                summary +
+                header.summary +
                 `\n\n` +
                 `[텍스트]\n` +
                 `${textLink}\n` +
@@ -104,9 +116,13 @@ export class BibleScheduler extends Scheduler {
                 `[오디오]\n` +
                 `${audioLink}\n`;
             html =
-                `<h3>${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티</h3>` +
+                `<h3>${today.tz("Asia/Seoul").format("M")}월 ${today
+                    .tz("Asia/Seoul")
+                    .format("D")}일 매일성경 큐티</h3>` +
+                `<b>${header.bible}</b><br>` +
+                "<br>" +
                 `<b>[본문의 중심내용]</b><br>` +
-                `${summary}<br>` +
+                `${header.summary}<br>` +
                 "<br>" +
                 `<b>[텍스트]</b><br>` +
                 `<a href="${textLink}">${textLink}</a><br>` +
@@ -115,7 +131,7 @@ export class BibleScheduler extends Scheduler {
                 `<a href="${audioLink}">${audioLink}</a><br>`;
         } else {
             text =
-                `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
+                `${today.tz("Asia/Seoul").format("M")}월 ${today.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
                 `\n` +
                 `[텍스트]\n` +
                 `${textLink}\n` +
@@ -123,7 +139,9 @@ export class BibleScheduler extends Scheduler {
                 `[오디오]\n` +
                 `${audioLink}\n`;
             html =
-                `<h3>${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티</h3>` +
+                `<h3>${today.tz("Asia/Seoul").format("M")}월 ${today
+                    .tz("Asia/Seoul")
+                    .format("D")}일 매일성경 큐티</h3>` +
                 `<b>[텍스트]</b><br>` +
                 `<a href="${textLink}">${textLink}</a><br>` +
                 "<br>" +
