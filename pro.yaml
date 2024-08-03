@@ -1,6 +1,6 @@
 apps:
   name: "daily-bible"
-  script: "./node_modules/ts-node src/main"
+  script: "./node_modules/.bin/ts-node src/main"
   watch: false
   err_file: "logs/err.log"
   out_file: "logs/out.log"
