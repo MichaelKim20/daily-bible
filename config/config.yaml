@@ -2,24 +2,31 @@
 ##                             Network interface                              ##
 ################################################################################
 server:
-    # Address to which we bind (default: 127.0.0.1)
-    address: "${HOST_IP}"
-    # Port on which we bind (default: 7070)
-    port: "${HOST_PORT}"
+  # Address to which we bind (default: 127.0.0.1)
+  address: "0.0.0.0"
+  # Port on which we bind (default: 7070)
+  port: "7788"
 
 ################################################################################
 ##                               Logging options                              ##
 ################################################################################
 logging:
-    # Values: error, warn, info, http, verbose, debug, silly
-    level: verbose
+  # Values: error, warn, info, http, verbose, debug, silly
+  level: verbose
 
 ################################################################################
 ##                             Scheduler options                              ##
 ################################################################################
 scheduler:
-    enable: true
-    items:
-        - name: bible
-          enable: true
-          expression: "*/10 * * * * *"
+  enable: true
+  items:
+    - name: bible
+      enable: true
+      expression: "*/10 * * * * *"
+
+bible:
+  auth_user: ${EMAIL_AUTH_USER}
+  auth_pass: ${EMAIL_AUTH_PASS}
+  receivers:
+    - ${EMAIL_RECEIVER0}
+    - ${EMAIL_RECEIVER1}

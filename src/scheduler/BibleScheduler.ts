@@ -1,26 +1,34 @@
 import { Config } from "../common/Config";
-import { logger } from "../common/Logger";
-import { ContractUtils } from "../utils/ContractUtils";
+import { HTTPClient } from "../utils/HTTPClient";
 import { Scheduler } from "./Scheduler";
+
+import moment from "moment-timezone";
+import * as nodemailer from "nodemailer";
 
 // @ts-ignore
 
 export class BibleScheduler extends Scheduler {
     private _config: Config | undefined;
 
-    private old_time_stamp: number;
-    private new_time_stamp: number;
+    private old_date: number;
+    private old_hour: number;
+    private new_date: number;
+    private new_hour: number;
+    private sent: boolean;
 
     constructor(expression: string) {
         super(expression);
-        this.old_time_stamp = ContractUtils.getTimeStamp() - 120;
-        this.new_time_stamp = ContractUtils.getTimeStamp();
+        this.sent = false;
+        this.old_date = 0;
+        this.old_hour = 0;
+        this.new_date = 0;
+        this.new_hour = 0;
     }
 
     private get config(): Config {
         if (this._config !== undefined) return this._config;
         else {
-            logger.error("Config is not ready yet.");
+            console.error("Config is not ready yet.");
             process.exit(1);
         }
     }
@@ -31,16 +39,155 @@ export class BibleScheduler extends Scheduler {
         }
     }
 
-    public async onStart() {}
+    protected async getSummary(url: string) {
+        const client = new HTTPClient();
+        const res = await client.get(url);
+        if (res.status === 200) {
+            try {
+                const text: string = res.data;
+                let p1: number;
+                let p2: number;
+                let s1: string;
+                let s2: string;
+
+                p1 = text.indexOf("본문의 중심내용");
+                if (p1 >= 0) {
+                    s1 = text.substring(p1 + 8);
+                    p2 = s1.indexOf("</p><br />");
+                    if (p2 >= 0) {
+                        s2 = s1.substring(0, p2);
+
+                        s2 = s2.replace(/<\/span>/g, "");
+                        s2 = s2.replace(/<br \/>/g, "");
+                        s2 = s2.trim();
+                        return s2;
+                    } else {
+                        return "";
+                    }
+                } else {
+                    return "";
+                }
+            } catch (error) {
+                //
+            }
+            return "";
+        } else {
+            return "";
+        }
+    }
+
+    protected async buildContents() {
+        const today = moment();
+        const to2 = today.tz("Asia/Seoul");
+        const url = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${to2
+            .tz("Asia/Seoul")
+            .format("YYYY-MM-DD")}`;
+        const summary = await this.getSummary(url);
+        const subject = `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티`;
+        let text = "";
+        let html = "";
+        const textLink = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${to2
+            .tz("Asia/Seoul")
+            .format("YYYY-MM-DD")}`;
+        const audioLink = `https://meditation.su.or.kr/meditation_mp3/${to2.tz("Asia/Seoul").format("YYYY")}/${to2
+            .tz("Asia/Seoul")
+            .format("YYYYMMDD")}.mp3`;
+        if (summary !== "") {
+            text =
+                `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
+                `[본문의 중심내용]\n` +
+                summary +
+                `\n\n` +
+                `[텍스트]\n` +
+                `${textLink}\n` +
+                `\n` +
+                `[오디오]\n` +
+                `${audioLink}\n`;
+            html =
+                `<h3>${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티</h3>` +
+                `<b>[본문의 중심내용]</b><br>` +
+                `${summary}<br>` +
+                "<br>" +
+                `<b>[텍스트]</b><br>` +
+                `<a href="${textLink}">${textLink}</a><br>` +
+                "<br>" +
+                `<b>[오디오]</b><br>` +
+                `<a href="${audioLink}">${audioLink}</a><br>`;
+        } else {
+            text =
+                `${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티\n\n` +
+                `\n` +
+                `[텍스트]\n` +
+                `${textLink}\n` +
+                `\n` +
+                `[오디오]\n` +
+                `${audioLink}\n`;
+            html =
+                `<h3>${to2.tz("Asia/Seoul").format("M")}월 ${to2.tz("Asia/Seoul").format("D")}일 매일성경 큐티</h3>` +
+                `<b>[텍스트]</b><br>` +
+                `<a href="${textLink}">${textLink}</a><br>` +
+                "<br>" +
+                `<b>[오디오]</b><br>` +
+                `<a href="${audioLink}">${audioLink}</a><br>`;
+        }
+        return { subject, text, html };
+    }
+
+    protected async sendMail(address: string, subject: string, text: string, html: string) {
+        return new Promise<void>((resolve, reject) => {
+            const transporter = nodemailer.createTransport({
+                service: "gmail", // 이메일
+                auth: {
+                    user: this.config.bible.auth_user, // 발송자 이메일
+                    pass: this.config.bible.auth_pass, // 발송자 비밀번호
+                },
+            });
+            const mailOptions = {
+                from: "qksystemmonitor@gmail.com",
+                to: address,
+                subject,
+                text,
+                html,
+            };
+            transporter.sendMail(mailOptions, (error, result) => {
+                if (error) reject(error);
+                resolve();
+            });
+        });
+    }
 
     protected async work() {
         try {
-            this.new_time_stamp = ContractUtils.getTimeStamp();
-            const old_source_period = Math.floor(this.old_time_stamp / 60);
-            const new_source_period = Math.floor(this.new_time_stamp / 60);
-            if (old_source_period !== new_source_period) {
-                this.old_time_stamp = this.new_time_stamp;
+            const today = moment().tz("Asia/Seoul");
+            today.day();
+
+            this.new_date = today.date();
+            this.new_hour = today.hour();
+
+            if (this.old_date === 0) {
+                this.old_date = this.new_date;
+                this.old_hour = this.new_hour;
+                return;
             }
+            console.log(`${this.new_date} ${this.new_hour}:${today.minute()}`);
+
+            if (this.old_date !== this.new_date) {
+                console.log("Reset");
+                this.sent = false;
+            }
+
+            // if (!this.sent && this.old_hour !== 7 && this.new_hour === 7) {
+            if (!this.sent && this.new_hour >= 7) {
+                const contents = await this.buildContents();
+                for (const receiver of this.config.bible.receivers) {
+                    await this.sendMail(receiver, contents.subject, contents.text, contents.html);
+                }
+                this.sent = true;
+            }
+
+            this.old_date = this.new_date;
+            this.old_hour = this.new_hour;
+            return;
         } catch (error) {
             console.log(error);
         }

@@ -1,8 +1,10 @@
 import { Config } from "./common/Config";
-import { logger, Logger } from "./common/Logger";
 import { DefaultServer } from "./DefaultServer";
 import { BibleScheduler } from "./scheduler/BibleScheduler";
 import { Scheduler } from "./scheduler/Scheduler";
+
+import * as dotenv from "dotenv";
+dotenv.config({ path: "env/.env" });
 
 let server: DefaultServer;
 
@@ -10,12 +12,8 @@ async function main() {
     // Create with the arguments and read from file
     const config = Config.createWithArgument();
 
-    logger.transports.forEach((tp) => {
-        tp.level = config.logging.level;
-    });
-
-    logger.info(`address: ${config.server.address}`);
-    logger.info(`port: ${config.server.port}`);
+    console.info(`address: ${config.server.address}`);
+    console.info(`port: ${config.server.port}`);
 
     const schedulers: Scheduler[] = [];
     if (config.scheduler.enable) {
@@ -30,13 +28,13 @@ async function main() {
         // handle specific listen errors with friendly messages
         switch (error.code) {
             case "EACCES":
-                logger.error(`${config.server.port} requires elevated privileges`);
+                console.error(`${config.server.port} requires elevated privileges`);
                 break;
             case "EADDRINUSE":
-                logger.error(`Port ${config.server.port} is already in use`);
+                console.error(`Port ${config.server.port} is already in use`);
                 break;
             default:
-                logger.error(`An error occurred while starting the server: ${error.stack}`);
+                console.error(`An error occurred while starting the server: ${error.stack}`);
         }
         process.exit(1);
     });

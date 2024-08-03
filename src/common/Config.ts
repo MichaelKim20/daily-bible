@@ -11,11 +11,13 @@ export class Config implements IConfig {
     public server: ServerConfig;
     public logging: LoggingConfig;
     public scheduler: SchedulerConfig;
+    public bible: BibleConfig;
 
     constructor() {
         this.server = new ServerConfig();
         this.logging = new LoggingConfig();
         this.scheduler = new SchedulerConfig();
+        this.bible = new BibleConfig();
     }
 
     public static createWithArgument(): Config {
@@ -54,6 +56,7 @@ export class Config implements IConfig {
         this.server.readFromObject(cfg.server);
         this.logging.readFromObject(cfg.logging);
         this.scheduler.readFromObject(cfg.scheduler);
+        this.bible.readFromObject(cfg.bible);
     }
 }
 
@@ -148,6 +151,33 @@ export class SchedulerConfig implements ISchedulerConfig {
     }
 }
 
+export class BibleConfig {
+    public receivers: string[];
+    public auth_user: string;
+    public auth_pass: string;
+
+    constructor() {
+        const defaults = BibleConfig.defaultValue();
+        this.receivers = defaults.receivers;
+        this.auth_user = defaults.auth_user;
+        this.auth_pass = defaults.auth_pass;
+    }
+
+    public static defaultValue(): IBibleConfig {
+        return {
+            receivers: [],
+            auth_user: "",
+            auth_pass: "",
+        };
+    }
+
+    public readFromObject(config: IBibleConfig) {
+        if (config.receivers) this.receivers = config.receivers;
+        if (config.auth_user) this.auth_user = config.auth_user;
+        if (config.auth_pass) this.auth_pass = config.auth_pass;
+    }
+}
+
 export interface IServerConfig {
     address: string;
     port: number;
@@ -169,8 +199,15 @@ export interface ISchedulerConfig {
     getScheduler(name: string): ISchedulerItemConfig | undefined;
 }
 
+export interface IBibleConfig {
+    receivers: string[];
+    auth_user: string;
+    auth_pass: string;
+}
+
 export interface IConfig {
     server: IServerConfig;
     logging: ILoggingConfig;
     scheduler: ISchedulerConfig;
+    bible: IBibleConfig;
 }

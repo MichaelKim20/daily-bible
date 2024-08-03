@@ -1,0 +1,14 @@
+apps:
+  name: "daily-bible"
+  script: "ts-node src/main"
+  watch: false
+  err_file: "logs/err.log"
+  out_file: "logs/out.log"
+  log_date_format: "YYYY-MM-DD HH:mm Z"
+  merge_logs: true
+  node_args: "--harmony"
+  kill_timeout: 3000
+  env:
+    NODE_ENV: "production"
+  env_production:
+    NODE_ENV: "production"
