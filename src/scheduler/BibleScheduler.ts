@@ -176,8 +176,8 @@ export class BibleScheduler extends Scheduler {
                 this.sent = false;
             }
 
-            // if (!this.sent && this.old_hour !== 7 && this.new_hour === 7) {
-            if (!this.sent && this.new_hour >= 7) {
+            if (!this.sent && this.old_hour !== 7 && this.new_hour === 7) {
+                // if (!this.sent && this.new_hour >= 7) {
                 const contents = await this.buildContents();
                 for (const receiver of this.config.bible.receivers) {
                     await this.sendMail(receiver, contents.subject, contents.text, contents.html);
