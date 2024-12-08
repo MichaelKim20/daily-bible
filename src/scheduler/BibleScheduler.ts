@@ -88,7 +88,7 @@ export class BibleScheduler extends Scheduler {
     }
 
     protected async buildContents() {
-        const today = moment().add(24, "hour").tz("Asia/Seoul");
+        const today = moment().tz("Asia/Seoul");
         const url = `https://qt.swim.org/user_utf/dailybible/user_print_web.php?edit_all=${today
             .tz("Asia/Seoul")
             .format("YYYY-MM-DD")}`;
@@ -194,7 +194,7 @@ export class BibleScheduler extends Scheduler {
                 this.sent = false;
             }
 
-            if (!this.sent && this.old_hour !== 20 && this.new_hour === 20) {
+            if (!this.sent && this.old_hour !== 7 && this.new_hour === 7) {
                 // if (!this.sent && this.new_hour >= 7) {
                 const contents = await this.buildContents();
                 for (const receiver of this.config.bible.receivers) {
